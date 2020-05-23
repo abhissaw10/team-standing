@@ -1,6 +1,6 @@
 pipeline {
   environment {
-    registry = "abhissaw/library"
+    registry = "abhissaw/team-standing"
     registryCredential = 'abhissaw'
     dockerImage = ''
   }
@@ -8,7 +8,7 @@ pipeline {
   stages {
     stage('Cloning Git') {
       steps {
-        git 'https://github.com/abhissaw10/library.git'
+        git 'https://github.com/abhissaw10/team-standing.git'
       }
     }
     stage('Building image') {
