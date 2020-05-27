@@ -4,9 +4,9 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,12 +19,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sapient.teamstanding.exception.CountryNotFoundException;
-import com.sapient.teamstanding.exception.StandingNotFoundException;
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixProperty;
 import com.sapient.teamstanding.model.Country;
 import com.sapient.teamstanding.model.League;
 import com.sapient.teamstanding.model.Standing;
 import com.sapient.teamstanding.util.TeamStandingConstants;
+
 
 @Service
 public class TeamStandingService {
@@ -56,18 +57,23 @@ public class TeamStandingService {
 		List<Standing> standingList = new ArrayList<>();
 		Optional<Country> country = getCountry(countryName);
 		List<League> leagues = getLeague(country.get().getCountry_id());
-		leagues.stream().forEach(l->{
+		Function<String, List<Standing>>func = l-> {
 			try {
-				getStanding(l.getLeague_id(),standingList);
+				return getStanding(l);
 			} catch (JsonMappingException e) {
-				// TODO Auto-generated catch block
 				log.error(e.getMessage());
-				
+				return new ArrayList<>();
 			} catch (JsonProcessingException e) {
-				// TODO Auto-generated catch block
 				log.error(e.getMessage());
+				return new ArrayList<>();
 			}
-		});
+		};
+		standingList = leagues
+				.stream()
+				.map(League::getLeague_id)
+				.flatMap(l->Stream.of(func.apply(l)))
+				.flatMap(List::stream)
+				.collect(Collectors.toList());
 		return standingList;
 	}	
 	/**
@@ -77,6 +83,10 @@ public class TeamStandingService {
 	 * @throws JsonMappingException
 	 * @throws JsonProcessingException
 	 */
+	@HystrixCommand(defaultFallback="defaultFallBack",commandProperties= {
+			@HystrixProperty(name="circuitBreaker.errorThresholdPercentage",value="1"),
+			@HystrixProperty(name="circuitBreaker.requestVolumeThreshold",value="2"),
+			@HystrixProperty(name="circuitBreaker.sleepWindowInMilliseconds",value="1"),})
 	private Optional<Country> getCountry(String countryName) throws JsonMappingException, JsonProcessingException {
 		String response = restTemplate.getForObject(URI.create(constructURL(TeamStandingConstants.GET_COUNTRIES)),String.class);
 		List<Country> countries = mapper.readValue(response, new TypeReference<List<Country>>() {});
@@ -100,15 +110,27 @@ public class TeamStandingService {
 		return leagues;
 	}
 	
-	private List<Standing> getStanding(String league_id, List<Standing> standings) throws JsonMappingException, JsonProcessingException {
+	
+	/**
+	 * 
+	 * @param league_id
+	 * @param standings
+	 * @return
+	 * @throws JsonMappingException
+	 * @throws JsonProcessingException
+	 */
+	private List<Standing> getStanding(String league_id) throws JsonMappingException, JsonProcessingException {
 		//https://apiv2.apifootball.com/?action=get_standings&league_id=148&APIkey=9bb66184e0c8145384fd2cc0f7b914ada57b4e8fd2e4d6d586adcc27c257a978
 		String uri = constructURL(TeamStandingConstants.GET_STANDINGS.concat(TeamStandingConstants.LEAGUE_ID).concat(league_id));
 		String response = restTemplate.getForObject(URI.create(uri),String.class);
-		standings.addAll(mapper.readValue(response, new TypeReference<List<Standing>>() {}));
-		return standings;
+		return mapper.readValue(response, new TypeReference<List<Standing>>() {});
 	}
 	
-	
+	/**
+	 * 
+	 * @param entityContext
+	 * @return
+	 */
 	private String constructURL(String entityContext) {
 		String url = countryServiceURL.
 				concat(TeamStandingConstants.ACTION)
@@ -119,7 +141,7 @@ public class TeamStandingService {
 	}
 	
 	private void defaultFallBack() {
-		
+		log.info("Entering defaultFallBack");
 	}
 	
 }

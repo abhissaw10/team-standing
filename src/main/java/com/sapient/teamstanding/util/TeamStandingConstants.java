@@ -17,4 +17,6 @@ public interface TeamStandingConstants {
 	public static String APIKEY = "&APIkey=";
 	
 	public static String COUNTRY_NOT_FOUND = "C001";
+	
+	public static String EMPTY_STRING = "";
 }
