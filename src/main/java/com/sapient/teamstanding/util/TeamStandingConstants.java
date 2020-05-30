@@ -19,4 +19,11 @@ public interface TeamStandingConstants {
 	public static String COUNTRY_NOT_FOUND = "C001";
 	
 	public static String EMPTY_STRING = "";
+	
+	public static String HYSTRIX_ERROR_THRESH_PERC = "circuitBreaker.errorThresholdPercentage";
+	
+	public static String HYSTRIX_REQUEST_VOLUME_THRESH = "circuitBreaker.requestVolumeThreshold";
+	
+	public static String HYSTRIX_SLEEP_WINDOW = "circuitBreaker.sleepWindowInMilliseconds";
+	
 }

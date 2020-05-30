@@ -84,9 +84,9 @@ public class TeamStandingService {
 	 * @throws JsonProcessingException
 	 */
 	@HystrixCommand(defaultFallback="defaultFallBack",commandProperties= {
-			@HystrixProperty(name="circuitBreaker.errorThresholdPercentage",value="1"),
-			@HystrixProperty(name="circuitBreaker.requestVolumeThreshold",value="2"),
-			@HystrixProperty(name="circuitBreaker.sleepWindowInMilliseconds",value="1"),})
+			@HystrixProperty(name=TeamStandingConstants.HYSTRIX_ERROR_THRESH_PERC,value="1"),
+			@HystrixProperty(name=TeamStandingConstants.HYSTRIX_REQUEST_VOLUME_THRESH,value="2"),
+			@HystrixProperty(name=TeamStandingConstants.HYSTRIX_SLEEP_WINDOW,value="1"),})
 	private Optional<Country> getCountry(String countryName) throws JsonMappingException, JsonProcessingException {
 		String response = restTemplate.getForObject(URI.create(constructURL(TeamStandingConstants.GET_COUNTRIES)),String.class);
 		List<Country> countries = mapper.readValue(response, new TypeReference<List<Country>>() {});
@@ -102,6 +102,10 @@ public class TeamStandingService {
 	 * @throws JsonMappingException
 	 * @throws JsonProcessingException
 	 */
+	@HystrixCommand(defaultFallback="defaultFallBack",commandProperties= {
+			@HystrixProperty(name=TeamStandingConstants.HYSTRIX_ERROR_THRESH_PERC,value="1"),
+			@HystrixProperty(name=TeamStandingConstants.HYSTRIX_REQUEST_VOLUME_THRESH,value="2"),
+			@HystrixProperty(name=TeamStandingConstants.HYSTRIX_SLEEP_WINDOW,value="1"),})
 	private List<League> getLeague(String country_id) throws JsonMappingException, JsonProcessingException {
 		//https://apiv2.apifootball.com/?action=get_leagues&country_id=41&APIkey=xxxxxxxxxxxxxx
 		String uri = constructURL(TeamStandingConstants.GET_LEAGUES.concat(TeamStandingConstants.COUNTRY_ID).concat(country_id));
@@ -119,6 +123,10 @@ public class TeamStandingService {
 	 * @throws JsonMappingException
 	 * @throws JsonProcessingException
 	 */
+	@HystrixCommand(defaultFallback="defaultFallBack",commandProperties= {
+			@HystrixProperty(name=TeamStandingConstants.HYSTRIX_ERROR_THRESH_PERC,value="1"),
+			@HystrixProperty(name=TeamStandingConstants.HYSTRIX_REQUEST_VOLUME_THRESH,value="2"),
+			@HystrixProperty(name=TeamStandingConstants.HYSTRIX_SLEEP_WINDOW,value="1"),})
 	private List<Standing> getStanding(String league_id) throws JsonMappingException, JsonProcessingException {
 		//https://apiv2.apifootball.com/?action=get_standings&league_id=148&APIkey=9bb66184e0c8145384fd2cc0f7b914ada57b4e8fd2e4d6d586adcc27c257a978
 		String uri = constructURL(TeamStandingConstants.GET_STANDINGS.concat(TeamStandingConstants.LEAGUE_ID).concat(league_id));
@@ -141,7 +149,7 @@ public class TeamStandingService {
 	}
 	
 	private void defaultFallBack() {
-		log.info("Entering defaultFallBack");
+		log.error("Entering defaultFallBack");
 	}
 	
 }
